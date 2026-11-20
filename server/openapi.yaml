@@ -1,0 +1,356 @@
+openapi: 3.1.0
+info:
+  title: Student Portal API
+  version: 1.0.0
+  description: REST API for student requests and administrator workflows.
+servers:
+  - url: http://localhost:4000/api/v1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+  schemas:
+    Success:
+      type: object
+      required: [success, data, message, error]
+      properties:
+        success: { type: boolean, const: true }
+        data: {}
+        message: { type: string }
+        error: { type: "null" }
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, const: false }
+        data: { type: "null" }
+        message: { type: string }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            details: {}
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [Student, Admin] }
+        active: { type: boolean }
+    Staff:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        specialization: { type: string, enum: [academic, fee, certificate, hostel, other] }
+        active: { type: boolean }
+    Request:
+      type: object
+      properties:
+        id: { type: string, example: REQ-1048 }
+        referenceId: { type: string }
+        student: { $ref: "#/components/schemas/User" }
+        subject: { type: string }
+        category: { type: string, enum: [academic, fee, certificate, hostel, other] }
+        priority: { type: string, enum: [Low, Medium, High, Urgent] }
+        description: { type: string }
+        status: { type: string, enum: [Pending, "In Progress", Resolved, Rejected] }
+        assignedTo: { $ref: "#/components/schemas/User" }
+        assignedStaff:
+          oneOf:
+            - { $ref: "#/components/schemas/Staff" }
+            - { type: "null" }
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              fileName: { type: string }
+              originalName: { type: string }
+              mimeType: { type: string }
+              size: { type: integer }
+        replies:
+          type: array
+          items:
+            type: object
+            properties:
+              author: { $ref: "#/components/schemas/User" }
+              assignedStaff:
+                oneOf:
+                  - { $ref: "#/components/schemas/Staff" }
+                  - { type: "null" }
+              message: { type: string }
+              createdAt: { type: string, format: date-time }
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              status: { type: string }
+              detail: { type: string }
+              actor: { $ref: "#/components/schemas/User" }
+              at: { type: string, format: date-time }
+        archived: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, role]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                role: { type: string, enum: [Student, Admin] }
+      responses:
+        "200":
+          description: Login successful
+  /auth/admin/registration-status:
+    get:
+      tags: [Authentication]
+      security: []
+      responses:
+        "200": { description: Whether private-key admin registration is enabled }
+  /auth/admin/register:
+    post:
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, setupKey]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 12, maxLength: 128 }
+                setupKey: { type: string, minLength: 24 }
+      responses:
+        "201": { description: Administrator registered and signed in }
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      security:
+        - refreshCookie: []
+      responses:
+        "200": { description: Session refreshed or no active refresh session }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      security: []
+      responses:
+        "200": { description: Logout successful }
+  /auth/me:
+    get:
+      tags: [Authentication]
+      responses:
+        "200": { description: Current user }
+  /students/dashboard:
+    get:
+      tags: [Student]
+      responses:
+        "200": { description: Student summary counts and recent requests }
+  /requests:
+    post:
+      tags: [Student]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [subject, category, priority, description]
+              properties:
+                subject: { type: string }
+                category: { type: string, enum: [academic, fee, certificate, hostel, other] }
+                priority: { type: string, enum: [Low, Medium, High, Urgent] }
+                description: { type: string }
+                attachment:
+                  type: string
+                  format: binary
+      responses:
+        "201": { description: Request created }
+  /requests/me:
+    get:
+      tags: [Student]
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [Pending, "In Progress", Resolved, Rejected] } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 10 } }
+      responses:
+        "200": { description: Paginated student requests }
+  /requests/{id}:
+    get:
+      tags: [Student, Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, example: REQ-1048 } }
+      responses:
+        "200": { description: Request detail }
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      responses:
+        "200": { description: Admin summary counts and recent activity }
+  /admin/users:
+    get:
+      tags: [Admin]
+      responses:
+        "200": { description: Active administrators available for assignment }
+  /admin/staff:
+    get:
+      tags: [Admin]
+      responses:
+        "200": { description: Active support staff with their specializations }
+  /admin/students:
+    get:
+      tags: [Admin]
+      responses:
+        "200": { description: Student accounts without password data }
+    post:
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 12, maxLength: 128 }
+      responses:
+        "201": { description: Student account created }
+  /admin/requests:
+    get:
+      tags: [Admin]
+      parameters:
+        - { in: query, name: search, schema: { type: string } }
+        - { in: query, name: status, schema: { type: string, enum: [Pending, "In Progress", Resolved, Rejected] } }
+        - { in: query, name: category, schema: { type: string, enum: [academic, fee, certificate, hostel, other] } }
+        - { in: query, name: priority, schema: { type: string, enum: [Low, Medium, High, Urgent] } }
+        - { in: query, name: dateFrom, schema: { type: string, format: date-time } }
+        - { in: query, name: dateTo, schema: { type: string, format: date-time } }
+        - { in: query, name: sortBy, schema: { type: string, enum: [createdAt, updatedAt, priority, status, subject] } }
+        - { in: query, name: sortOrder, schema: { type: string, enum: [asc, desc] } }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: pageSize, schema: { type: integer } }
+      responses:
+        "200": { description: Paginated and filtered requests }
+  /admin/requests/{id}:
+    get:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Full admin request detail }
+    delete:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Request soft deleted }
+  /admin/requests/{id}/status:
+    patch:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [Pending, "In Progress", Resolved, Rejected] }
+      responses:
+        "200": { description: Status updated }
+  /admin/requests/{id}/priority:
+    patch:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [priority]
+              properties:
+                priority: { type: string, enum: [Low, Medium, High, Urgent] }
+      responses:
+        "200": { description: Priority updated }
+  /admin/requests/{id}/assign:
+    patch:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staffId]
+              properties:
+                staffId:
+                  oneOf:
+                    - { type: string, format: uuid }
+                    - { type: "null" }
+      responses:
+        "200": { description: Request assigned }
+  /admin/requests/{id}/replies:
+    post:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, minLength: 3, maxLength: 5000 }
+      responses:
+        "201": { description: Reply posted }
+  /admin/requests/{id}/notes:
+    post:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: { type: string, minLength: 3, maxLength: 5000 }
+      responses:
+        "201": { description: Internal note added }
+  /admin/requests/{id}/archive:
+    patch:
+      tags: [Admin]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Request archived }
