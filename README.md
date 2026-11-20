@@ -2,6 +2,10 @@
 
 A responsive React and Tailwind CSS student portal backed by an Express REST API and SQLite database.
 
+## Project history
+
+The project’s milestones, technology decisions, implemented workflows, and current limitations are documented in [Project History](./PROJECT_HISTORY.md).
+
 ## Requirements
 
 - Node.js 22.13 or newer (the backend uses Node's built-in `node:sqlite` module)
