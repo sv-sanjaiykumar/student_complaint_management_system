@@ -4,6 +4,10 @@
     {
       "source": "/api/v1/:path*",
       "destination": "https://student-portal-api-4sbx.onrender.com/api/v1/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
