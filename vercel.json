@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://student-portal-api-4sbx.onrender.com/api/v1/:path*"
+    }
+  ]
+}
