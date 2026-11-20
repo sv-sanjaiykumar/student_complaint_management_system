@@ -122,16 +122,11 @@ paths:
       responses:
         "200":
           description: Login successful
-  /auth/admin/registration-status:
-    get:
-      tags: [Authentication]
-      security: []
-      responses:
-        "200": { description: Whether private-key admin registration is enabled }
   /auth/admin/register:
     post:
       tags: [Authentication]
       security: []
+      description: One-time initial admin bootstrap. Disabled after the first admin account is created.
       requestBody:
         required: true
         content:

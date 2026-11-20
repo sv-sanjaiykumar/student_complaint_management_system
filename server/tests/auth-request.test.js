@@ -33,7 +33,7 @@ describe("Authentication and authorization", () => {
     expect(me.body.data.user.id).toBe(student.id);
   });
 
-  test("admin registration requires the private key", async () => {
+  test("admin bootstrap requires the private key and closes after the first admin", async () => {
     const invalid = await request(app).post("/api/v1/auth/admin/register").send({
       name: "Portal Admin",
       email: "first-admin@test.demo",
@@ -57,7 +57,13 @@ describe("Authentication and authorization", () => {
       password: "A-Strong-Admin-Pass-123",
       setupKey: process.env.ADMIN_SETUP_KEY,
     });
-    expect(secondSetup.status).toBe(201);
+    expect(secondSetup.status).toBe(403);
+    expect(secondSetup.body.error.code).toBe("ADMIN_SETUP_CLOSED");
+  });
+
+  test("does not expose admin registration status publicly", async () => {
+    const response = await request(app).get("/api/v1/auth/admin/registration-status");
+    expect(response.status).toBe(404);
   });
 
   test("locks account after repeated failed logins", async () => {

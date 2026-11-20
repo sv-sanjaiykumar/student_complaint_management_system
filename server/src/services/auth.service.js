@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const env = require("../config/env");
+const { transaction } = require("../config/db");
 const User = require("../models/User");
 const ApiError = require("../utils/apiError");
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require("../utils/jwt");
@@ -88,10 +89,6 @@ async function currentUser(userId) {
   return publicUser(user);
 }
 
-function adminRegistrationAvailable() {
-  return Boolean(env.adminSetupKey);
-}
-
 async function registerAdmin({ name, email, password, setupKey }) {
   const expected = env.adminSetupKey || "";
   const suppliedBuffer = Buffer.from(setupKey);
@@ -99,7 +96,13 @@ async function registerAdmin({ name, email, password, setupKey }) {
   if (!expected || suppliedBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(suppliedBuffer, expectedBuffer)) {
     throw new ApiError(403, "INVALID_SETUP_KEY", "Admin registration key is invalid");
   }
-  const created = User.create({ name, email, passwordHash: await bcrypt.hash(password, 12), role: "Admin" });
+  const passwordHash = await bcrypt.hash(password, 12);
+  const created = transaction(() => {
+    if (User.countAdmins() > 0) {
+      throw new ApiError(403, "ADMIN_SETUP_CLOSED", "Initial admin setup is already complete");
+    }
+    return User.create({ name, email, passwordHash, role: "Admin" });
+  });
   return login(created.email, password, "Admin");
 }
 
@@ -111,5 +114,5 @@ async function createStudent({ name, email, password }, actorId) {
 }
 
 module.exports = {
-  login, refresh, logout, currentUser, adminRegistrationAvailable, registerAdmin, createStudent,
+  login, refresh, logout, currentUser, registerAdmin, createStudent,
 };
