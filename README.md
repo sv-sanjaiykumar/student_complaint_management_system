@@ -35,7 +35,7 @@ Open the Vite URL (by default, `http://localhost:5173`). The frontend connects t
 ## Accounts and roles
 
 - The seed command creates fake demo student and admin accounts; see [`server/README.md`](./server/README.md) for credentials.
-- Admin signup is not available on the login page. The first admin is provisioned once through the protected `POST /api/v1/auth/admin/register` bootstrap endpoint using `ADMIN_SETUP_KEY`; remove that key after setup.
+- Admin registration requires the private `ADMIN_SETUP_KEY` configured in the backend environment. Rotate or remove the key when registration should be disabled.
 - Administrators create student accounts from the Student Accounts page.
 - Support staff are specialist directory entries for assignment, not login accounts. Add demo specialists to an existing database with `cd server && npm run seed:staff`.
 

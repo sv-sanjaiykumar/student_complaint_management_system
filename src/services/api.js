@@ -102,6 +102,19 @@ export async function loginRequest({ email, password, role }) {
   return { ...data, user: normalizeUser(data.user) };
 }
 
+export async function registerAdmin(payload) {
+  const data = await rawRequest("/auth/admin/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  accessToken = data.accessToken;
+  return { ...data, user: normalizeUser(data.user) };
+}
+
+export async function getAdminRegistrationStatus() {
+  return rawRequest("/auth/admin/registration-status");
+}
+
 export async function restoreSession() {
   const data = await refreshAccessToken();
   if (!data) return null;

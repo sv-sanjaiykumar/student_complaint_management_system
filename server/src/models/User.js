@@ -52,10 +52,6 @@ function listActiveAdmins() {
   }));
 }
 
-function countAdmins() {
-  return getDb().prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'Admin'").get().count;
-}
-
 function listStudents() {
   return getDb().prepare(`
     SELECT id, name, email, active, created_at FROM users
@@ -100,6 +96,6 @@ function clearRefreshTokenHash(id) {
 
 module.exports = {
   findById, findByIdWithSession, findByEmail, findActiveAdmin, listActiveAdmins,
-  countAdmins, listStudents, create, updateLoginState,
+  listStudents, create, updateLoginState,
   setRefreshTokenHash, clearRefreshTokenHash,
 };

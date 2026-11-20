@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import {
   loginRequest,
   logoutRequest,
+  registerAdmin,
   restoreSession,
   setAccessToken,
 } from "../services/api";
@@ -34,6 +35,12 @@ export function AuthProvider({ children }) {
     return result.user;
   }, []);
 
+  const setupAdmin = useCallback(async (details) => {
+    const result = await registerAdmin(details);
+    setUser(result.user);
+    return result.user;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await logoutRequest();
@@ -43,7 +50,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ user, ready, login, logout }), [user, ready, login, logout]);
+  const value = useMemo(() => ({ user, ready, login, setupAdmin, logout }), [user, ready, login, setupAdmin, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

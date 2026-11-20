@@ -7,6 +7,7 @@ const { loginSchema, adminSetupSchema } = require("../validators/auth.validator"
 const controller = require("../controllers/auth.controller");
 
 router.post("/login", loginLimiter, validate(loginSchema), asyncHandler(controller.login));
+router.get("/admin/registration-status", asyncHandler(controller.adminRegistrationStatus));
 router.post("/admin/register", loginLimiter, validate(adminSetupSchema), asyncHandler(controller.registerAdmin));
 router.post("/refresh", asyncHandler(controller.refresh));
 router.post("/logout", asyncHandler(controller.logout));

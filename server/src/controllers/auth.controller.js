@@ -38,10 +38,14 @@ async function me(req, res) {
   return success(res, 200, { user }, "Current user");
 }
 
+function adminRegistrationStatus(_req, res) {
+  return success(res, 200, { available: authService.adminRegistrationAvailable() }, "Admin registration status");
+}
+
 async function registerAdmin(req, res) {
   const result = await authService.registerAdmin(req.body);
   setRefreshCookie(res, result.refreshToken);
   return success(res, 201, { user: result.user, accessToken: result.accessToken }, "Admin registered");
 }
 
-module.exports = { login, refresh, logout, me, registerAdmin };
+module.exports = { login, refresh, logout, me, adminRegistrationStatus, registerAdmin };
